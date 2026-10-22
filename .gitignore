@@ -485,3 +485,7 @@ $RECYCLE.BIN/
 *.env
 .env*
 
+
+# Yerel çalışma notları (Claude Code talimatları), repoya girmez
+CLAUDE.md
+

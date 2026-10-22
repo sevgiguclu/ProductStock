@@ -1,6 +1,7 @@
 @ProductStock.Api_HostAddress = http://localhost:5265
 
-GET {{ProductStock.Api_HostAddress}}/weatherforecast/
+# MongoDB bağlantı kontrolü
+GET {{ProductStock.Api_HostAddress}}/api/health/db
 Accept: application/json
 
 ###

@@ -21,6 +21,7 @@ public class GlobalExceptionHandler : IExceptionHandler
         // switch: exception'ın türüne göre hangi kod ve başlığı döneceğimize karar veriyoruz.
         var (statusCode, title, detail) = exception switch
         {
+            BadRequestException => (StatusCodes.Status400BadRequest, "Geçersiz istek", exception.Message),
             NotFoundException => (StatusCodes.Status404NotFound, "Kayıt bulunamadı", exception.Message),
             ConflictException => (StatusCodes.Status409Conflict, "Çakışma", exception.Message),
             // Beklenmeyen hata: ayrıntıyı kullanıcıya göstermiyoruz (iç bilgi sızdırabilir), sadece log'a yazıyoruz.

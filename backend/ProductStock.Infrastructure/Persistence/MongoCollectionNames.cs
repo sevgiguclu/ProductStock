@@ -5,4 +5,5 @@ namespace ProductStock.Infrastructure.Persistence;
 public static class MongoCollectionNames
 {
     public const string Products = "products";
+    public const string StockMovements = "stock_movements";
 }

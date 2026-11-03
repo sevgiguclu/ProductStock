@@ -12,6 +12,9 @@ public class MongoDbContext
 {
     private readonly ILogger<MongoDbContext> _logger;
 
+    // Transaction (işlem bütünü) başlatmak için client'a erişim gerekiyor.
+    public IMongoClient Client { get; }
+
     public IMongoDatabase Database { get; }
 
     // Constructor: ayarları IOptions<MongoDbSettings> olarak DI'dan alıyoruz.
@@ -31,8 +34,8 @@ public class MongoDbContext
             throw new InvalidOperationException(
                 "MongoDbSettings:DatabaseName boş. User Secrets veya environment variable ile ayarlayın.");
 
-        var client = new MongoClient(settings.ConnectionString);
-        Database = client.GetDatabase(settings.DatabaseName);
+        Client = new MongoClient(settings.ConnectionString);
+        Database = Client.GetDatabase(settings.DatabaseName);
     }
 
     // Veritabanına "ping" komutu gönderir; bağlantı çalışıyorsa true döner.

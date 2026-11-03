@@ -26,6 +26,7 @@ public static class DependencyInjection
         // Biri IProductRepository (sözleşme) isterse ona ProductRepository (MongoDB'li hali) ver.
         // Scoped: her HTTP isteği için yeni bir ProductRepository; istek bitince o da biter.
         services.AddScoped<IProductRepository, ProductRepository>();
+        services.AddScoped<IStockMovementRepository, StockMovementRepository>();
 
         // Uygulama açılırken index'leri oluşturan iş (hosted service).
         services.AddHostedService<MongoIndexInitializer>();

@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using ProductStock.Api.ErrorHandling;
 using ProductStock.Application;
 using ProductStock.Infrastructure;
@@ -9,7 +10,9 @@ var builder = WebApplication.CreateBuilder(args);
 // ---------------------------------------------------------------
 
 // Controller sınıflarını (HealthController, ProductsController...) etkinleştirir.
-builder.Services.AddControllers();
+// JsonStringEnumConverter: JSON'da enum'lar sayı (0, 1) yerine metin ("In", "Out") olarak yazılsın/okunsun.
+builder.Services.AddControllers()
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 
 // Application katmanı (ProductService gibi iş kuralları)
 builder.Services.AddApplication();

@@ -36,6 +36,14 @@ public class MongoIndexInitializer : IHostedService
 
         await products.Indexes.CreateManyAsync([skuIndex, categoryIndex], cancellationToken);
 
+        // Stok hareketleri: "bir ürünün fişleri, en yeni önce" sorgusu hızlı olsun.
+        var movements = _context.Database.GetCollection<StockMovement>(MongoCollectionNames.StockMovements);
+        var productHistoryIndex = new CreateIndexModel<StockMovement>(
+            Builders<StockMovement>.IndexKeys.Ascending(m => m.ProductId).Descending(m => m.CreatedAt),
+            new CreateIndexOptions { Name = "ix_stock_movements_product_createdAt" });
+
+        await movements.Indexes.CreateOneAsync(productHistoryIndex, cancellationToken: cancellationToken);
+
         _logger.LogInformation("MongoDB index'leri hazır.");
     }
 

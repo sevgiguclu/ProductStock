@@ -29,7 +29,9 @@ public static class MongoMappings
                 // C#'taki "StockQuantity" → MongoDB'de "stockQuantity" olarak yazılır.
                 new CamelCaseElementNameConvention(),
                 // Veritabanında sınıfta olmayan bir alan varsa hata verme, görmezden gel.
-                new IgnoreExtraElementsConvention(true)
+                new IgnoreExtraElementsConvention(true),
+                // enum'lar sayı (0, 1) yerine okunabilir metin ("In", "Out") olarak saklansın.
+                new EnumRepresentationConvention(BsonType.String)
             };
             ConventionRegistry.Register(
                 "ProductStockConventions",
@@ -50,6 +52,19 @@ public static class MongoMappings
                 // böylece fiyat aralığı filtresi doğru çalışır.
                 map.MapMember(p => p.Price)
                     .SetSerializer(new DecimalSerializer(BsonType.Decimal128));
+            });
+
+            BsonClassMap.RegisterClassMap<StockMovement>(map =>
+            {
+                map.AutoMap();
+
+                map.MapIdMember(m => m.Id)
+                    .SetSerializer(new StringSerializer(BsonType.ObjectId))
+                    .SetIdGenerator(StringObjectIdGenerator.Instance);
+
+                // Fişin ait olduğu ürünün Id'si de ObjectId olarak saklansın (ürün Id'siyle aynı tipte).
+                map.MapMember(m => m.ProductId)
+                    .SetSerializer(new StringSerializer(BsonType.ObjectId));
             });
 
             _registered = true;

@@ -11,6 +11,7 @@ public static class DependencyInjection
     {
         // Biri IProductService (müdür sözleşmesi) isterse ona ProductService ver. Her istek için yeni bir tane.
         services.AddScoped<IProductService, ProductService>();
+        services.AddScoped<IStockService, StockService>();
 
         return services;
     }

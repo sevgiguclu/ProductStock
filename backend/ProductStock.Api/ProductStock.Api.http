@@ -47,7 +47,7 @@ Content-Type: application/json
 
 ### Tek ürün getir
 # {id} yerine "Yeni ürün ekle" cevabındaki "id" değerini yapıştır.
-@productId = BURAYA_URUN_ID
+@productId = 6aea3a0b6174270165ade07a
 GET {{ProductStock.Api_HostAddress}}/api/products/{{productId}}
 Accept: application/json
 
@@ -64,5 +64,27 @@ Content-Type: application/json
   "criticalStockLevel": 5
 }
 
-### Ürünü sil
+### Stok girişi (stok artar). Miktar her zaman pozitif yazılır.
+POST {{ProductStock.Api_HostAddress}}/api/products/{{productId}}/stock/in
+Content-Type: application/json
+
+{
+  "quantity": 10,
+  "reason": "Tedarikçiden alım"
+}
+
+### Stok çıkışı (stok azalır). Stok yetersizse 409 döner.
+POST {{ProductStock.Api_HostAddress}}/api/products/{{productId}}/stock/out
+Content-Type: application/json
+
+{
+  "quantity": 2,
+  "reason": "Satış"
+}
+
+### Ürünün stok hareket geçmişi (en yeni önce)
+GET {{ProductStock.Api_HostAddress}}/api/products/{{productId}}/stock/movements
+Accept: application/json
+
+### Ürünü sil (DİKKAT: @productId'deki ürünü gerçekten siler)
 DELETE {{ProductStock.Api_HostAddress}}/api/products/{{productId}}

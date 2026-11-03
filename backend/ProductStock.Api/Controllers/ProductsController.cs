@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using ProductStock.Application.DTOs.Common;
 using ProductStock.Application.DTOs.Products;
 using ProductStock.Application.Interfaces;
 
@@ -18,12 +19,13 @@ public class ProductsController : ControllerBase
         _productService = productService;
     }
 
-    // GET api/products → tüm ürünler
+    // GET api/products?search=klavye&category=...&minPrice=...&stockStatus=critical&sortBy=price&page=1&pageSize=20
+    // [FromQuery]: ProductQueryParameters fişini adresin "?" sonrasındaki değerlerden doldur.
     [HttpGet]
-    public async Task<ActionResult<List<ProductResponse>>> GetAll(CancellationToken cancellationToken)
+    public async Task<ActionResult<PagedResult<ProductResponse>>> Search([FromQuery] ProductQueryParameters query, CancellationToken cancellationToken)
     {
-        var products = await _productService.GetAllAsync(cancellationToken);
-        return Ok(products);
+        var result = await _productService.SearchAsync(query, cancellationToken);
+        return Ok(result);
     }
 
     // GET api/products/{id} → tek ürün. {id} adresten okunur ve "id" parametresine yerleşir.

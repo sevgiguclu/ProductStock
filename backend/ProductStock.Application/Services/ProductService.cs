@@ -1,3 +1,4 @@
+using ProductStock.Application.DTOs.Common;
 using ProductStock.Application.DTOs.Products;
 using ProductStock.Application.Exceptions;
 using ProductStock.Application.Interfaces;
@@ -17,12 +18,26 @@ public class ProductService : IProductService
         _repository = repository;
     }
 
-    public async Task<List<ProductResponse>> GetAllAsync(CancellationToken cancellationToken = default)
-    {
-        var products = await _repository.GetAllAsync(cancellationToken);
+    // Sayfa boyutu için üst sınır: biri pageSize=1000000 yazıp her şeyi tek seferde çekmesin.
+    private const int MaxPageSize = 100;
 
-        // Select: listedeki her ürünü ProductResponse'a çevir.
-        return products.Select(ProductResponse.FromEntity).ToList();
+    public async Task<PagedResult<ProductResponse>> SearchAsync(ProductQueryParameters query, CancellationToken cancellationToken = default)
+    {
+        // Kural: sayfa en az 1; sayfa boyutu 1 ile 100 arasında.
+        // Math.Max(a, b) → büyük olanı, Math.Clamp(x, min, max) → x'i [min, max] aralığına sıkıştırır.
+        query.Page = Math.Max(query.Page, 1);
+        query.PageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
+
+        var (items, totalCount) = await _repository.SearchAsync(query, cancellationToken);
+
+        return new PagedResult<ProductResponse>
+        {
+            // Select: listedeki her ürünü ProductResponse'a çevir.
+            Items = items.Select(ProductResponse.FromEntity).ToList(),
+            Page = query.Page,
+            PageSize = query.PageSize,
+            TotalCount = totalCount
+        };
     }
 
     public async Task<ProductResponse> GetByIdAsync(string id, CancellationToken cancellationToken = default)

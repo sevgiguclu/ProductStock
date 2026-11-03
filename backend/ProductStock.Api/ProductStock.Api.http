@@ -7,8 +7,28 @@
 GET {{ProductStock.Api_HostAddress}}/api/health/db
 Accept: application/json
 
-### Tüm ürünleri listele
+### Ürünleri listele (varsayılan: ada göre A-Z, sayfa 1, sayfada 20)
 GET {{ProductStock.Api_HostAddress}}/api/products
+Accept: application/json
+
+### Arama: adında veya SKU'sunda "klavye" geçenler
+GET {{ProductStock.Api_HostAddress}}/api/products?search=klavye
+Accept: application/json
+
+### Filtre: kategori
+GET {{ProductStock.Api_HostAddress}}/api/products?category=Kablolar
+Accept: application/json
+
+### Filtre: fiyat aralığı (200 - 1000 TL)
+GET {{ProductStock.Api_HostAddress}}/api/products?minPrice=200&maxPrice=1000
+Accept: application/json
+
+### Kritik stok uyarısı: stoğu kritik seviyede olanlar
+GET {{ProductStock.Api_HostAddress}}/api/products?stockStatus=critical
+Accept: application/json
+
+### Sıralama + sayfalama: fiyata göre pahalıdan ucuza, sayfada 2 ürün, 2. sayfa
+GET {{ProductStock.Api_HostAddress}}/api/products?sortBy=price&sortDescending=true&pageSize=2&page=2
 Accept: application/json
 
 ### Yeni ürün ekle

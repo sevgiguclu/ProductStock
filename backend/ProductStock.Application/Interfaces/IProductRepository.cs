@@ -1,3 +1,4 @@
+using ProductStock.Application.DTOs.Products;
 using ProductStock.Domain.Entities;
 
 namespace ProductStock.Application.Interfaces;
@@ -13,8 +14,9 @@ namespace ProductStock.Application.Interfaces;
 // veritabanı sorgusunu boşuna sürdürmeyiz.
 public interface IProductRepository
 {
-    // Tüm ürünleri getirir. (Arama, filtre ve sayfalama 3-4. günlerde eklenecek.)
-    Task<List<Product>> GetAllAsync(CancellationToken cancellationToken = default);
+    // Arama/filtre/sıralama uygulayıp istenen sayfadaki ürünleri getirir.
+    // İki bilgi birlikte döner (tuple): o sayfadaki ürünler + filtreye uyan TOPLAM ürün sayısı.
+    Task<(List<Product> Items, long TotalCount)> SearchAsync(ProductQueryParameters query, CancellationToken cancellationToken = default);
 
     // Id'si verilen ürünü getirir; bulunamazsa null döner ("?" işareti null olabileceğini gösterir).
     Task<Product?> GetByIdAsync(string id, CancellationToken cancellationToken = default);

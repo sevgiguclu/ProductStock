@@ -1,3 +1,4 @@
+using ProductStock.Application.DTOs.Common;
 using ProductStock.Application.DTOs.Products;
 
 namespace ProductStock.Application.Interfaces;
@@ -6,7 +7,8 @@ namespace ProductStock.Application.Interfaces;
 // Repository'den farkı: dışarıyla DTO (form) üzerinden konuşur ve iş kurallarını uygular.
 public interface IProductService
 {
-    Task<List<ProductResponse>> GetAllAsync(CancellationToken cancellationToken = default);
+    // Arama/filtre/sıralama/sayfalama ile ürün listesi. Sayfa değerleri güvenli sınırlara çekilir.
+    Task<PagedResult<ProductResponse>> SearchAsync(ProductQueryParameters query, CancellationToken cancellationToken = default);
 
     // Ürün yoksa NotFoundException fırlatır.
     Task<ProductResponse> GetByIdAsync(string id, CancellationToken cancellationToken = default);

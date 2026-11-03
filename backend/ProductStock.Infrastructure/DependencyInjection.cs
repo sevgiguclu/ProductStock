@@ -1,6 +1,8 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using ProductStock.Application.Interfaces;
 using ProductStock.Infrastructure.Persistence;
+using ProductStock.Infrastructure.Repositories;
 
 namespace ProductStock.Infrastructure;
 
@@ -12,11 +14,18 @@ public static class DependencyInjection
     // "this IServiceCollection" → extension method: IServiceCollection'a dışarıdan metot ekler.
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        // C# ↔ MongoDB tercüman kurallarını yükle. Veritabanına ilk erişimden ÖNCE çalışmalı.
+        MongoMappings.Register();
+
         // "MongoDbSettings" bölümünü MongoDbSettings sınıfına bağlar (Options pattern).
         services.Configure<MongoDbSettings>(configuration.GetSection(MongoDbSettings.SectionName));
 
         // Singleton: uygulama boyunca tek MongoDbContext (dolayısıyla tek MongoClient).
         services.AddSingleton<MongoDbContext>();
+
+        // Biri IProductRepository (sözleşme) isterse ona ProductRepository (MongoDB'li hali) ver.
+        // Scoped: her HTTP isteği için yeni bir ProductRepository; istek bitince o da biter.
+        services.AddScoped<IProductRepository, ProductRepository>();
 
         return services;
     }

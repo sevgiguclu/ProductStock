@@ -24,7 +24,8 @@ public class Product
     // Eldeki stok miktarı. Asla eksiye düşmemeli (stok işlemlerinde atomik kontrol edilecek).
     public int StockQuantity { get; set; }
 
-    // Stok bu seviyenin altına inerse ürün "kritik stok" sayılır.
+    // Stok bu seviyeye eşit veya altındaysa ürün "kritik stok" sayılır.
+    // (Eşitlik de dahil: kritik seviyesi 0 olan bir ürün stoğu bitince yine uyarı versin.)
     public int CriticalStockLevel { get; set; }
 
     // Tarihler her zaman UTC tutulur; saat dilimine göre çevirme işi arayüzde yapılır.

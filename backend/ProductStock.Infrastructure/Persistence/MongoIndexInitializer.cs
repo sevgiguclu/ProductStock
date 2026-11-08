@@ -44,6 +44,14 @@ public class MongoIndexInitializer : IHostedService
 
         await movements.Indexes.CreateOneAsync(productHistoryIndex, cancellationToken: cancellationToken);
 
+        // Kullanıcılar: aynı kullanıcı adıyla iki hesap olamaz.
+        var users = _context.Database.GetCollection<User>(MongoCollectionNames.Users);
+        var usernameIndex = new CreateIndexModel<User>(
+            Builders<User>.IndexKeys.Ascending(u => u.Username),
+            new CreateIndexOptions { Unique = true, Name = "ux_users_username" });
+
+        await users.Indexes.CreateOneAsync(usernameIndex, cancellationToken: cancellationToken);
+
         _logger.LogInformation("MongoDB index'leri hazır.");
     }
 

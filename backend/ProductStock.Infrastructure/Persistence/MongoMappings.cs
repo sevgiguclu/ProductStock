@@ -67,6 +67,15 @@ public static class MongoMappings
                     .SetSerializer(new StringSerializer(BsonType.ObjectId));
             });
 
+            BsonClassMap.RegisterClassMap<User>(map =>
+            {
+                map.AutoMap();
+
+                map.MapIdMember(u => u.Id)
+                    .SetSerializer(new StringSerializer(BsonType.ObjectId))
+                    .SetIdGenerator(StringObjectIdGenerator.Instance);
+            });
+
             _registered = true;
         }
     }

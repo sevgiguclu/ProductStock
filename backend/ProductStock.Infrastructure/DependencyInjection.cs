@@ -1,8 +1,10 @@
+using System.Text;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ProductStock.Application.Interfaces;
 using ProductStock.Infrastructure.Persistence;
 using ProductStock.Infrastructure.Repositories;
+using ProductStock.Infrastructure.Security;
 
 namespace ProductStock.Infrastructure;
 
@@ -27,9 +29,29 @@ public static class DependencyInjection
         // Scoped: her HTTP isteği için yeni bir ProductRepository; istek bitince o da biter.
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IStockMovementRepository, StockMovementRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
 
-        // Uygulama açılırken index'leri oluşturan iş (hosted service).
+        // --- Güvenlik ---
+
+        // JWT ayarları + açılışta kontrol: mühür anahtarı en az 32 bayt değilse uygulama hiç başlamasın.
+        // ValidateOnStart: hatayı ilk girişte değil, uygulama açılırken yakala ("erken ve yüksek sesle başarısız ol").
+        services.AddOptions<JwtSettings>()
+            .Bind(configuration.GetSection(JwtSettings.SectionName))
+            .Validate(s => Encoding.UTF8.GetByteCount(s.SecretKey) >= 32,
+                "JwtSettings:SecretKey en az 32 karakter olmalı (User Secrets ile ayarlayın).")
+            .Validate(s => s.ExpiryMinutes > 0, "JwtSettings:ExpiryMinutes 0'dan büyük olmalı.")
+            .ValidateOnStart();
+
+        services.Configure<SeedAdminSettings>(configuration.GetSection(SeedAdminSettings.SectionName));
+
+        // Kıyma makinesi ve bileklik üreticisi durumsuz (state tutmuyor) → uygulama boyunca tek nesne yeterli.
+        services.AddSingleton<IPasswordHasher, IdentityPasswordHasher>();
+        services.AddSingleton<ITokenService, JwtTokenService>();
+
+        // Uygulama açılırken çalışan işler (hosted service). Kayıt SIRASIYLA çalışırlar:
+        // önce index'ler kurulur, sonra (gerekirse) ilk Admin oluşturulur.
         services.AddHostedService<MongoIndexInitializer>();
+        services.AddHostedService<AdminSeeder>();
 
         return services;
     }

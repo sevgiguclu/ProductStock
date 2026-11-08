@@ -6,4 +6,5 @@ public static class MongoCollectionNames
 {
     public const string Products = "products";
     public const string StockMovements = "stock_movements";
+    public const string Users = "users";
 }

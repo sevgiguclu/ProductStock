@@ -2,39 +2,71 @@
 
 # Kullanım: önce uygulamayı çalıştır, sonra her isteğin üstündeki "Send Request" yazısına tıkla.
 # "###" satırları istekleri birbirinden ayırır.
+#
+# GİRİŞ GEREKİYOR: Sağlık kontrolü dışındaki her adres bileklik (token) ister.
+# 1) Önce aşağıdaki "Giriş yap" isteğini gönder; üstte açılan kutuya Admin şifresini yaz.
+# 2) Bileklik otomatik olarak {{token}} değişkenine alınır; diğer istekler onu kullanır.
+# 3) Bileklik 60 dakika geçerli. Süresi dolunca istekler 401 döner → girişi tekrar gönder.
 
-### MongoDB bağlantı kontrolü
+# Girişin cevabındaki "token" alanını al (login = aşağıdaki giriş isteğinin adı).
+@token = {{login.response.body.$.token}}
+
+### MongoDB bağlantı kontrolü (bileklik gerekmez)
 GET {{ProductStock.Api_HostAddress}}/api/health/db
+Accept: application/json
+
+### Giriş yap
+# @name login: bu isteğe "login" adını verir; cevabına yukarıdaki @token satırı bu adla ulaşır.
+# @prompt: şifreyi gönderirken sorar. Şifre bu dosyaya YAZILMAZ (dosya GitHub'a gidiyor!).
+# @name login
+# @prompt adminPassword Admin şifresi
+POST {{ProductStock.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin",
+  "password": "{{adminPassword}}"
+}
+
+### Bilekliksiz istek (401 dönmeli: kapı kilitli)
+GET {{ProductStock.Api_HostAddress}}/api/products
 Accept: application/json
 
 ### Ürünleri listele (varsayılan: ada göre A-Z, sayfa 1, sayfada 20)
 GET {{ProductStock.Api_HostAddress}}/api/products
 Accept: application/json
+Authorization: Bearer {{token}}
 
 ### Arama: adında veya SKU'sunda "klavye" geçenler
 GET {{ProductStock.Api_HostAddress}}/api/products?search=klavye
 Accept: application/json
+Authorization: Bearer {{token}}
 
 ### Filtre: kategori
 GET {{ProductStock.Api_HostAddress}}/api/products?category=Kablolar
 Accept: application/json
+Authorization: Bearer {{token}}
 
 ### Filtre: fiyat aralığı (200 - 1000 TL)
 GET {{ProductStock.Api_HostAddress}}/api/products?minPrice=200&maxPrice=1000
 Accept: application/json
+Authorization: Bearer {{token}}
 
 ### Kritik stok uyarısı: stoğu kritik seviyede olanlar
 GET {{ProductStock.Api_HostAddress}}/api/products?stockStatus=critical
 Accept: application/json
+Authorization: Bearer {{token}}
 
 ### Sıralama + sayfalama: fiyata göre pahalıdan ucuza, sayfada 2 ürün, 2. sayfa
 GET {{ProductStock.Api_HostAddress}}/api/products?sortBy=price&sortDescending=true&pageSize=2&page=2
 Accept: application/json
+Authorization: Bearer {{token}}
 
 ### Yeni ürün ekle
 # Gövde (body): başlık satırlarından sonra BİR BOŞ SATIR bırakıp JSON yazılır.
 POST {{ProductStock.Api_HostAddress}}/api/products
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "name": "Kablosuz Klavye",
@@ -50,10 +82,12 @@ Content-Type: application/json
 @productId = 6aea3a0b6174270165ade07a
 GET {{ProductStock.Api_HostAddress}}/api/products/{{productId}}
 Accept: application/json
+Authorization: Bearer {{token}}
 
 ### Ürünü güncelle (stok değişmez)
 PUT {{ProductStock.Api_HostAddress}}/api/products/{{productId}}
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "name": "Kablosuz Klavye",
@@ -67,6 +101,7 @@ Content-Type: application/json
 ### Stok girişi (stok artar). Miktar her zaman pozitif yazılır.
 POST {{ProductStock.Api_HostAddress}}/api/products/{{productId}}/stock/in
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "quantity": 10,
@@ -76,6 +111,7 @@ Content-Type: application/json
 ### Stok çıkışı (stok azalır). Stok yetersizse 409 döner.
 POST {{ProductStock.Api_HostAddress}}/api/products/{{productId}}/stock/out
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
   "quantity": 2,
@@ -85,6 +121,8 @@ Content-Type: application/json
 ### Ürünün stok hareket geçmişi (en yeni önce)
 GET {{ProductStock.Api_HostAddress}}/api/products/{{productId}}/stock/movements
 Accept: application/json
+Authorization: Bearer {{token}}
 
 ### Ürünü sil (DİKKAT: @productId'deki ürünü gerçekten siler)
 DELETE {{ProductStock.Api_HostAddress}}/api/products/{{productId}}
+Authorization: Bearer {{token}}

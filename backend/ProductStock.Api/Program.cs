@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using ProductStock.Api.ErrorHandling;
+using ProductStock.Api.Security;
 using ProductStock.Application;
 using ProductStock.Infrastructure;
 
@@ -19,6 +20,9 @@ builder.Services.AddApplication();
 
 // Infrastructure katmanı (MongoDB bağlantısı, repository'ler)
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Kimlik doğrulama (JWT bilekliği kontrolü) + "varsayılan olarak kilitli" yetki kuralı
+builder.Services.AddJwtAuthentication();
 
 // Merkezi hata yakalayıcı + standart hata gövdesi (ProblemDetails)
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -40,13 +44,17 @@ app.UseExceptionHandler();
 if (app.Environment.IsDevelopment())
 {
     // Sadece geliştirmede: API tarifini /openapi/v1.json adresinde yayınlar.
-    app.MapOpenApi();
+    // AllowAnonymous: "varsayılan olarak kilitli" kuralı bu tarif sayfasını da kilitlemesin.
+    app.MapOpenApi().AllowAnonymous();
 }
 
 // http ile gelen isteği https'e yönlendirir.
 app.UseHttpsRedirection();
 
-// Yetki kontrolü (JWT ve roller 5-6. günde eklenecek).
+// 1. görevli – Kimlik doğrulama: "Sen kimsin?" Bilekliği okur, mührünü ve süresini kontrol eder.
+// 2. görevli – Yetkilendirme: "Buraya girebilir misin?" Kurallara bakar.
+// SIRA ÖNEMLİ: önce kim olduğunu bilmeliyiz, sonra iznine bakabiliriz.
+app.UseAuthentication();
 app.UseAuthorization();
 
 // İsteği adresine göre doğru controller metoduna gönderir.

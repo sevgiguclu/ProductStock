@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProductStock.Infrastructure.Persistence;
 
@@ -5,8 +6,11 @@ namespace ProductStock.Api.Controllers;
 
 // [ApiController]: model doğrulama, otomatik 400 yanıtı gibi API davranışlarını açar.
 // [Route]: bu controller'ın adresi → "api/health" ([controller] = sınıf adından "Controller" atılmış hali).
+// [AllowAnonymous]: giriş yapmadan erişilebilir. Sağlık kontrolünü izleme araçları (ileride Docker) çağıracak,
+// onların bilekliği yok. İçinde gizli bilgi yok, sadece "bağlı / bağlanılamadı" der.
 [ApiController]
 [Route("api/[controller]")]
+[AllowAnonymous]
 public class HealthController : ControllerBase
 {
     private readonly MongoDbContext _context;

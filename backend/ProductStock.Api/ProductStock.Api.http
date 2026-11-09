@@ -1,31 +1,28 @@
-@ProductStock.Api_HostAddress = http://localhost:5265
+﻿@ProductStock.Api_HostAddress = http://localhost:5265
 
 # Kullanım: önce uygulamayı çalıştır, sonra her isteğin üstündeki "Send Request" yazısına tıkla.
 # "###" satırları istekleri birbirinden ayırır.
 #
 # GİRİŞ GEREKİYOR: Sağlık kontrolü dışındaki her adres bileklik (token) ister.
-# 1) Önce aşağıdaki "Giriş yap" isteğini gönder; üstte açılan kutuya Admin şifresini yaz.
-# 2) Bileklik otomatik olarak {{token}} değişkenine alınır; diğer istekler onu kullanır.
-# 3) Bileklik 60 dakika geçerli. Süresi dolunca istekler 401 döner → girişi tekrar gönder.
-
-# Girişin cevabındaki "token" alanını al (login = aşağıdaki giriş isteğinin adı).
-@token = {{login.response.body.$.token}}
+# 1) Editörün sağ üstündeki ortam (environment) kutusundan "dev"i seç.
+# 2) Aşağıdaki "Giriş yap" isteğini gönder. Şifre User Secrets'tan otomatik okunur
+#    (http-client.env.json dosyasındaki AdminPassword → SeedAdmin:Password). Şifre bu dosyaya YAZILMAZ.
+# 3) Diğer istekler bilekliği girişin cevabından otomatik alır: login.response.body.$.token
+#    = "login" adlı isteğin → cevabının → gövdesindeki → token alanı.
+# 4) Bileklik 60 dakika geçerli. Süresi dolunca istekler 401 döner → girişi tekrar gönder.
 
 ### MongoDB bağlantı kontrolü (bileklik gerekmez)
 GET {{ProductStock.Api_HostAddress}}/api/health/db
 Accept: application/json
 
-### Giriş yap
-# @name login: bu isteğe "login" adını verir; cevabına yukarıdaki @token satırı bu adla ulaşır.
-# @prompt: şifreyi gönderirken sorar. Şifre bu dosyaya YAZILMAZ (dosya GitHub'a gidiyor!).
+### Giriş yap (alttaki satır bu isteğe "login" adını verir)
 # @name login
-# @prompt adminPassword Admin şifresi
 POST {{ProductStock.Api_HostAddress}}/api/auth/login
 Content-Type: application/json
 
 {
   "username": "admin",
-  "password": "{{adminPassword}}"
+  "password": "{{AdminPassword}}"
 }
 
 ### Bilekliksiz istek (401 dönmeli: kapı kilitli)
@@ -35,38 +32,38 @@ Accept: application/json
 ### Ürünleri listele (varsayılan: ada göre A-Z, sayfa 1, sayfada 20)
 GET {{ProductStock.Api_HostAddress}}/api/products
 Accept: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{login.response.body.$.token}}
 
 ### Arama: adında veya SKU'sunda "klavye" geçenler
 GET {{ProductStock.Api_HostAddress}}/api/products?search=klavye
 Accept: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{login.response.body.$.token}}
 
 ### Filtre: kategori
 GET {{ProductStock.Api_HostAddress}}/api/products?category=Kablolar
 Accept: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{login.response.body.$.token}}
 
 ### Filtre: fiyat aralığı (200 - 1000 TL)
 GET {{ProductStock.Api_HostAddress}}/api/products?minPrice=200&maxPrice=1000
 Accept: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{login.response.body.$.token}}
 
 ### Kritik stok uyarısı: stoğu kritik seviyede olanlar
 GET {{ProductStock.Api_HostAddress}}/api/products?stockStatus=critical
 Accept: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{login.response.body.$.token}}
 
 ### Sıralama + sayfalama: fiyata göre pahalıdan ucuza, sayfada 2 ürün, 2. sayfa
 GET {{ProductStock.Api_HostAddress}}/api/products?sortBy=price&sortDescending=true&pageSize=2&page=2
 Accept: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{login.response.body.$.token}}
 
 ### Yeni ürün ekle
 # Gövde (body): başlık satırlarından sonra BİR BOŞ SATIR bırakıp JSON yazılır.
 POST {{ProductStock.Api_HostAddress}}/api/products
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{login.response.body.$.token}}
 
 {
   "name": "Kablosuz Klavye",
@@ -82,12 +79,12 @@ Authorization: Bearer {{token}}
 @productId = 6aea3a0b6174270165ade07a
 GET {{ProductStock.Api_HostAddress}}/api/products/{{productId}}
 Accept: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{login.response.body.$.token}}
 
 ### Ürünü güncelle (stok değişmez)
 PUT {{ProductStock.Api_HostAddress}}/api/products/{{productId}}
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{login.response.body.$.token}}
 
 {
   "name": "Kablosuz Klavye",
@@ -101,7 +98,7 @@ Authorization: Bearer {{token}}
 ### Stok girişi (stok artar). Miktar her zaman pozitif yazılır.
 POST {{ProductStock.Api_HostAddress}}/api/products/{{productId}}/stock/in
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{login.response.body.$.token}}
 
 {
   "quantity": 10,
@@ -111,7 +108,7 @@ Authorization: Bearer {{token}}
 ### Stok çıkışı (stok azalır). Stok yetersizse 409 döner.
 POST {{ProductStock.Api_HostAddress}}/api/products/{{productId}}/stock/out
 Content-Type: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{login.response.body.$.token}}
 
 {
   "quantity": 2,
@@ -121,8 +118,8 @@ Authorization: Bearer {{token}}
 ### Ürünün stok hareket geçmişi (en yeni önce)
 GET {{ProductStock.Api_HostAddress}}/api/products/{{productId}}/stock/movements
 Accept: application/json
-Authorization: Bearer {{token}}
+Authorization: Bearer {{login.response.body.$.token}}
 
 ### Ürünü sil (DİKKAT: @productId'deki ürünü gerçekten siler)
 DELETE {{ProductStock.Api_HostAddress}}/api/products/{{productId}}
-Authorization: Bearer {{token}}
+Authorization: Bearer {{login.response.body.$.token}}

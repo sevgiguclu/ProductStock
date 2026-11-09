@@ -12,6 +12,11 @@
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
   </ItemGroup>
 
+  <!-- http-client.env.json sadece Visual Studio'daki .http testleri için; ne derleme çıktısına (bin) ne yayın paketine (publish) girsin. -->
+  <ItemGroup>
+    <Content Update="http-client.env.json" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\ProductStock.Application\ProductStock.Application.csproj" />
     <ProjectReference Include="..\ProductStock.Infrastructure\ProductStock.Infrastructure.csproj" />

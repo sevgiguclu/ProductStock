@@ -124,11 +124,12 @@ Authorization: Bearer {{login.response.body.$.token}}
 DELETE {{ProductStock.Api_HostAddress}}/api/products/{{productId}}
 Authorization: Bearer {{login.response.body.$.token}}
 
+### Kullanıcıları listele (Admin)
 # =====================================================================
 # KULLANICI YÖNETİMİ (sadece Admin). Admin bilekliği ("Giriş yap") gerekir.
+# DİKKAT: Bölüm başlıkları her zaman "###" satırının ALTINA yazılır.
+# "###"ten önce yazılırsa bir önceki isteğin GÖVDESİNE karışır (gövde bir sonraki ###'e kadar sürer).
 # =====================================================================
-
-### Kullanıcıları listele (Admin)
 GET {{ProductStock.Api_HostAddress}}/api/users
 Accept: application/json
 Authorization: Bearer {{login.response.body.$.token}}
@@ -140,17 +141,16 @@ Content-Type: application/json
 Authorization: Bearer {{login.response.body.$.token}}
 
 {
-  "username": "depo1",
-  "fullName": "Deneme Depo Görevlisi",
+  "username": "depo2",
+  "fullName": "Deneme Depo Görevlisi 2",
   "password": "{{DepoPassword}}",
   "role": "WarehouseStaff"
 }
 
+### Depo Görevlisi girişi (aşağıdaki "@name" satırı bu isteğe "loginDepo" adını verir)
 # =====================================================================
 # DEPO GÖREVLİSİ olarak dene (rol yetkisi testi)
 # =====================================================================
-
-### Depo Görevlisi girişi (alttaki satır bu isteğe "loginDepo" adını verir)
 # @name loginDepo
 POST {{ProductStock.Api_HostAddress}}/api/auth/login
 Content-Type: application/json

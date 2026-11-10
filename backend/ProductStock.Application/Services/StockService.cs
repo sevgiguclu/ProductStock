@@ -16,16 +16,16 @@ public class StockService : IStockService
 
     private const int MaxPageSize = 100;
 
-    // JWT (5-6. gün) gelene kadar işlemi yapan olarak bu yazılır; sonra giriş yapan kullanıcının adı gelecek.
-    private const string DefaultPerformedBy = "sistem";
-
     private readonly IStockMovementRepository _movements;
     private readonly IProductRepository _products;
+    private readonly ICurrentUserService _currentUser;
 
-    public StockService(IStockMovementRepository movements, IProductRepository products)
+    // ICurrentUserService: "şu an işlemi yapan kim?" Müdür cevabın nereden geldiğini (bileklik) bilmez.
+    public StockService(IStockMovementRepository movements, IProductRepository products, ICurrentUserService currentUser)
     {
         _movements = movements;
         _products = products;
+        _currentUser = currentUser;
     }
 
     public Task<StockMovementResponse> StockInAsync(string productId, StockChangeRequest request, CancellationToken cancellationToken = default)
@@ -66,13 +66,20 @@ public class StockService : IStockService
         if (string.IsNullOrWhiteSpace(request.Reason))
             throw new BadRequestException("Neden (reason) boş olamaz.");
 
+        // Fişte "işlemi yapan" = giriş yapmış kullanıcı. Stok adresleri bileklik istediği için normalde hep dolu gelir.
+        // Boş gelirse bir hata var demektir: "sistem" yazıp sessizce devam etmek yerine işlemi durduruyoruz
+        // (fail fast). Yoksa fişlerde kimin ne yaptığı kaybolur ve bunu ancak aylar sonra fark ederdik.
+        var performedBy = _currentUser.Username;
+        if (string.IsNullOrWhiteSpace(performedBy))
+            throw new UnauthorizedException("İşlemi yapan kullanıcı belirlenemedi.");
+
         var movement = new StockMovement
         {
             ProductId = productId,
             Type = type,
             Quantity = request.Quantity,
             Reason = request.Reason.Trim(),
-            PerformedBy = DefaultPerformedBy,
+            PerformedBy = performedBy,
             CreatedAt = DateTime.UtcNow
         };
 

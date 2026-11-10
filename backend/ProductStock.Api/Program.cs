@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using ProductStock.Api.ErrorHandling;
 using ProductStock.Api.Security;
 using ProductStock.Application;
+using ProductStock.Application.Interfaces;
 using ProductStock.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -23,6 +24,12 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 // Kimlik doğrulama (JWT bilekliği kontrolü) + "varsayılan olarak kilitli" yetki kuralı
 builder.Services.AddJwtAuthentication();
+
+// "Şu anki kullanıcı kim?" → bileklikten okuyan CurrentUserService.
+// AddHttpContextAccessor: şu anki HTTP isteğine controller dışından da ulaşmayı sağlar.
+// Scoped: her istek için yeni nesne (her isteğin kullanıcısı farklı).
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 // Merkezi hata yakalayıcı + standart hata gövdesi (ProblemDetails)
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();

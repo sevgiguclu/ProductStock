@@ -141,8 +141,8 @@ Content-Type: application/json
 Authorization: Bearer {{login.response.body.$.token}}
 
 {
-  "username": "depo2",
-  "fullName": "Deneme Depo Görevlisi 2",
+  "username": "depo3",
+  "fullName": "Deneme Depo Görevlisi 3",
   "password": "{{DepoPassword}}",
   "role": "WarehouseStaff"
 }

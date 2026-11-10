@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using ProductStock.Api.Security;
 using ProductStock.Application.DTOs.Common;
 using ProductStock.Application.DTOs.Products;
 using ProductStock.Application.Interfaces;
@@ -8,6 +10,9 @@ namespace ProductStock.Api.Controllers;
 // Ürün isteklerini karşılayan "danışma masası görevlisi". Adresi: api/products
 // Görevli karar vermez: işi IProductService'e (müdüre) iletir, cevabı geri verir.
 // Hata durumları (404, 409) burada yazılmaz; müdürün fırlattığı alarmı GlobalExceptionHandler yakalar.
+//
+// Yetki: Okuma (GET) → giriş yapan herkes (varsayılan "giriş şart" kuralı).
+//        Ekle/Düzenle/Sil → sadece Admin. Depo Görevlisi denerse 403 Forbidden.
 [ApiController]
 [Route("api/[controller]")]
 public class ProductsController : ControllerBase
@@ -38,6 +43,7 @@ public class ProductsController : ControllerBase
 
     // POST api/products → yeni ürün. Form (CreateProductRequest) isteğin gövdesinden (JSON) okunur.
     [HttpPost]
+    [Authorize(Policy = Policies.AdminOnly)]
     public async Task<ActionResult<ProductResponse>> Create(CreateProductRequest request, CancellationToken cancellationToken)
     {
         var created = await _productService.CreateAsync(request, cancellationToken);
@@ -48,6 +54,7 @@ public class ProductsController : ControllerBase
 
     // PUT api/products/{id} → ürünü güncelle (stok hariç).
     [HttpPut("{id}")]
+    [Authorize(Policy = Policies.AdminOnly)]
     public async Task<ActionResult<ProductResponse>> Update(string id, UpdateProductRequest request, CancellationToken cancellationToken)
     {
         var updated = await _productService.UpdateAsync(id, request, cancellationToken);
@@ -56,6 +63,7 @@ public class ProductsController : ControllerBase
 
     // DELETE api/products/{id} → ürünü sil. 204 No Content: "silindi, gösterecek bir şey yok".
     [HttpDelete("{id}")]
+    [Authorize(Policy = Policies.AdminOnly)]
     public async Task<IActionResult> Delete(string id, CancellationToken cancellationToken)
     {
         await _productService.DeleteAsync(id, cancellationToken);

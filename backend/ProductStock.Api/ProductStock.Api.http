@@ -123,3 +123,62 @@ Authorization: Bearer {{login.response.body.$.token}}
 ### Ürünü sil (DİKKAT: @productId'deki ürünü gerçekten siler)
 DELETE {{ProductStock.Api_HostAddress}}/api/products/{{productId}}
 Authorization: Bearer {{login.response.body.$.token}}
+
+# =====================================================================
+# KULLANICI YÖNETİMİ (sadece Admin). Admin bilekliği ("Giriş yap") gerekir.
+# =====================================================================
+
+### Kullanıcıları listele (Admin)
+GET {{ProductStock.Api_HostAddress}}/api/users
+Accept: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Yeni Depo Görevlisi ekle (Admin). depo1 zaten var → 409 döner; başka ad yazarak dene.
+# Şifre User Secrets'tan gelir (http-client.env.json → DepoPassword → HttpTest:DepoPassword).
+POST {{ProductStock.Api_HostAddress}}/api/users
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "username": "depo1",
+  "fullName": "Deneme Depo Görevlisi",
+  "password": "{{DepoPassword}}",
+  "role": "WarehouseStaff"
+}
+
+# =====================================================================
+# DEPO GÖREVLİSİ olarak dene (rol yetkisi testi)
+# =====================================================================
+
+### Depo Görevlisi girişi (alttaki satır bu isteğe "loginDepo" adını verir)
+# @name loginDepo
+POST {{ProductStock.Api_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "username": "depo1",
+  "password": "{{DepoPassword}}"
+}
+
+### Depo: ürünleri listele → 200 (okuma herkese açık)
+GET {{ProductStock.Api_HostAddress}}/api/products
+Accept: application/json
+Authorization: Bearer {{loginDepo.response.body.$.token}}
+
+### Depo: ürün eklemeyi dene → 403 Forbidden ("seni tanıyorum ama bu kapı sana kapalı")
+POST {{ProductStock.Api_HostAddress}}/api/products
+Content-Type: application/json
+Authorization: Bearer {{loginDepo.response.body.$.token}}
+
+{
+  "name": "Yetki Testi",
+  "sku": "YTK-001",
+  "category": "Test",
+  "price": 1,
+  "criticalStockLevel": 1
+}
+
+### Depo: kullanıcı listesini dene → 403
+GET {{ProductStock.Api_HostAddress}}/api/users
+Accept: application/json
+Authorization: Bearer {{loginDepo.response.body.$.token}}

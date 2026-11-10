@@ -1,3 +1,4 @@
+using MongoDB.Bson;
 using MongoDB.Driver;
 using ProductStock.Application.Exceptions;
 using ProductStock.Application.Interfaces;
@@ -19,6 +20,23 @@ public class UserRepository : IUserRepository
     public async Task<User?> GetByUsernameAsync(string username, CancellationToken cancellationToken = default)
     {
         return await _users.Find(u => u.Username == username).FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<User?> GetByIdAsync(string id, CancellationToken cancellationToken = default)
+    {
+        // Id ObjectId biçiminde değilse veritabanına hiç sormadan "yok" (ProductRepository'deki gibi).
+        if (!ObjectId.TryParse(id, out _))
+            return null;
+
+        return await _users.Find(u => u.Id == id).FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<List<User>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await _users
+            .Find(FilterDefinition<User>.Empty)   // Empty: filtre yok, hepsi
+            .SortBy(u => u.Username)
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<bool> AnyAsync(CancellationToken cancellationToken = default)

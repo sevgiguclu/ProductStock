@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using ProductStock.Domain.Enums;
 using ProductStock.Infrastructure.Security;
 
 namespace ProductStock.Api.Security;
@@ -66,7 +67,11 @@ public static class JwtAuthenticationExtensions
         services.AddAuthorizationBuilder()
             .SetFallbackPolicy(new AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser()
-                .Build());
+                .Build())
+            // "AdminOnly" kuralı: bileklikteki "role" claim'i "Admin" olmalı.
+            // nameof(UserRole.Admin) → "Admin". Elle "Admin" yazmak yerine enum'dan alıyoruz:
+            // enum'daki ad değişirse burası derlenmez ve hatayı hemen görürüz (yazım hatası riski yok).
+            .AddPolicy(Policies.AdminOnly, policy => policy.RequireRole(nameof(UserRole.Admin)));
 
         return services;
     }

@@ -1,3 +1,4 @@
+using ProductStock.Application.DTOs.Auth;
 using ProductStock.Application.DTOs.Users;
 
 namespace ProductStock.Application.Interfaces;
@@ -17,5 +18,6 @@ public interface IUserService
     Task<UserResponse> SetStatusAsync(string id, SetUserStatusRequest request, CancellationToken cancellationToken = default);
 
     // Giriş yapmış kullanıcının KENDİ şifresini değiştirir. Mevcut şifre yanlışsa 400.
-    Task ChangeOwnPasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default);
+    // Eski bileklikler geçersiz olur; kullanıcı atılmasın diye YENİ bileklik döner.
+    Task<LoginResponse> ChangeOwnPasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default);
 }

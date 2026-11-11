@@ -34,11 +34,11 @@ public class AuthController : ControllerBase
 
     // POST api/auth/change-password   Gövde: { "currentPassword": "...", "newPassword": "..." }
     // [AllowAnonymous] YOK → "varsayılan kilitli" kural geçerli: giriş yapmış herkes (her rol) kendi şifresini değiştirebilir.
-    // Başarılı → 204 No Content ("oldu, gösterecek bir şey yok").
+    // Başarılı → 200 + YENİ bileklik. Eski bileklikler (bu dahil) artık geçersiz; ön yüz yenisini saklamalı.
     [HttpPost("change-password")]
-    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request, CancellationToken cancellationToken)
+    public async Task<ActionResult<LoginResponse>> ChangePassword(ChangePasswordRequest request, CancellationToken cancellationToken)
     {
-        await _userService.ChangeOwnPasswordAsync(request, cancellationToken);
-        return NoContent();
+        var response = await _userService.ChangeOwnPasswordAsync(request, cancellationToken);
+        return Ok(response);
     }
 }

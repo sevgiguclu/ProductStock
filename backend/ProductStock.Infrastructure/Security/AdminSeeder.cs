@@ -51,6 +51,7 @@ public class AdminSeeder : IHostedService
             PasswordHash = _passwordHasher.Hash(_settings.Password),
             Role = UserRole.Admin,
             IsActive = true,
+            SecurityStamp = User.NewSecurityStamp(),
             CreatedAt = DateTime.UtcNow
         };
 

@@ -169,6 +169,7 @@ Authorization: Bearer {{login.response.body.$.token}}
 
 ### Şifre değiştir – YANLIŞ mevcut şifre → 400 "Mevcut şifre hatalı." (güvenli örnek, hiçbir şey değişmez)
 # Giriş yapmış herkes KENDİ şifresini değiştirebilir (başkasınınkini değil: kimin şifresi olduğu bileklikten okunur).
+# Başarılıysa 200 + YENİ bileklik döner; o kullanıcının eski bileklikleri (diğer bilgisayarlardakiler dahil) geçersiz olur.
 # UYARI: Gerçek değişiklik yaparsan yeni şifreyi bu dosyaya YAZMA (dosya GitHub'a gidiyor) ve
 # User Secrets'taki değeri de güncellemen gerekir, yoksa "Giriş yap" isteği çalışmaz.
 POST {{ProductStock.Api_HostAddress}}/api/auth/change-password

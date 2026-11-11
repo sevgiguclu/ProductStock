@@ -20,9 +20,12 @@ public interface IUserRepository
     // Yeni kullanıcı kaydeder. Aynı kullanıcı adı varsa ConflictException fırlatır.
     Task CreateAsync(User user, CancellationToken cancellationToken = default);
 
-    // Sadece IsActive alanını değiştirir. Kullanıcı bulunamazsa false.
-    Task<bool> SetActiveAsync(string id, bool isActive, CancellationToken cancellationToken = default);
+    // IsActive'i ve güvenlik damgasını birlikte değiştirir (eski bileklikler geçersiz olur). Kullanıcı yoksa false.
+    Task<bool> SetActiveAsync(string id, bool isActive, string securityStamp, CancellationToken cancellationToken = default);
 
-    // Sadece PasswordHash alanını değiştirir. Kullanıcı bulunamazsa false.
-    Task<bool> UpdatePasswordHashAsync(string id, string passwordHash, CancellationToken cancellationToken = default);
+    // Şifre kıymasını ve güvenlik damgasını birlikte değiştirir (eski bileklikler geçersiz olur). Kullanıcı yoksa false.
+    Task<bool> UpdatePasswordHashAsync(string id, string passwordHash, string securityStamp, CancellationToken cancellationToken = default);
+
+    // Sadece güvenlik damgasını yazar (damgası olmayan eski kullanıcılar için ilk girişte). Kullanıcı yoksa false.
+    Task<bool> SetSecurityStampAsync(string id, string securityStamp, CancellationToken cancellationToken = default);
 }

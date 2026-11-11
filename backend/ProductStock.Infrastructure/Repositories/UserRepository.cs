@@ -45,13 +45,22 @@ public class UserRepository : IUserRepository
         return count > 0;
     }
 
-    public Task<bool> SetActiveAsync(string id, bool isActive, CancellationToken cancellationToken = default)
-        => SetFieldAsync(id, Builders<User>.Update.Set(u => u.IsActive, isActive), cancellationToken);
+    // Update.Combine: birden fazla $set'i TEK güncellemede birleştirir → iki alan aynı anda (atomik) değişir.
+    // Böylece "pasif oldu ama damga değişmedi" gibi yarım bir durum oluşamaz.
+    public Task<bool> SetActiveAsync(string id, bool isActive, string securityStamp, CancellationToken cancellationToken = default)
+        => SetFieldAsync(id, Builders<User>.Update.Combine(
+            Builders<User>.Update.Set(u => u.IsActive, isActive),
+            Builders<User>.Update.Set(u => u.SecurityStamp, securityStamp)), cancellationToken);
 
-    public Task<bool> UpdatePasswordHashAsync(string id, string passwordHash, CancellationToken cancellationToken = default)
-        => SetFieldAsync(id, Builders<User>.Update.Set(u => u.PasswordHash, passwordHash), cancellationToken);
+    public Task<bool> UpdatePasswordHashAsync(string id, string passwordHash, string securityStamp, CancellationToken cancellationToken = default)
+        => SetFieldAsync(id, Builders<User>.Update.Combine(
+            Builders<User>.Update.Set(u => u.PasswordHash, passwordHash),
+            Builders<User>.Update.Set(u => u.SecurityStamp, securityStamp)), cancellationToken);
 
-    // Ortak iş: belgenin tamamını değil, SADECE verilen alanı değiştir ($set).
+    public Task<bool> SetSecurityStampAsync(string id, string securityStamp, CancellationToken cancellationToken = default)
+        => SetFieldAsync(id, Builders<User>.Update.Set(u => u.SecurityStamp, securityStamp), cancellationToken);
+
+    // Ortak iş: belgenin tamamını değil, SADECE verilen alanları değiştir ($set).
     // Böylece aynı anda başka bir alan değişse bile onu ezmeyiz (ürün güncellemedeki mantık).
     private async Task<bool> SetFieldAsync(string id, UpdateDefinition<User> update, CancellationToken cancellationToken)
     {

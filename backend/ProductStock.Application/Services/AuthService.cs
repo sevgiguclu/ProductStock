@@ -1,6 +1,7 @@
 using ProductStock.Application.DTOs.Auth;
 using ProductStock.Application.Exceptions;
 using ProductStock.Application.Interfaces;
+using ProductStock.Domain.Entities;
 
 namespace ProductStock.Application.Services;
 
@@ -35,6 +36,14 @@ public class AuthService : IAuthService
         // Kullanıcı yok, pasif ya da şifre yanlış → hepsinde aynı cevap.
         if (user is null || !user.IsActive || !_passwordHasher.Verify(user.PasswordHash, request.Password))
             throw new UnauthorizedException(InvalidCredentialsMessage);
+
+        // Geçiş planı: güvenlik damgası özelliğinden ÖNCE oluşturulan kullanıcıların damgası yok.
+        // İlk girişlerinde damga üretip kaydediyoruz; böylece veritabanını elle düzeltmeye gerek kalmıyor.
+        if (string.IsNullOrEmpty(user.SecurityStamp))
+        {
+            user.SecurityStamp = User.NewSecurityStamp();
+            await _users.SetSecurityStampAsync(user.Id, user.SecurityStamp, cancellationToken);
+        }
 
         var (token, expiresAt) = _tokenService.CreateToken(user);
 

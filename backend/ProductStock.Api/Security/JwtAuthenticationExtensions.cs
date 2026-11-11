@@ -58,6 +58,13 @@ public static class JwtAuthenticationExtensions
                     NameClaimType = JwtTokenService.UsernameClaim,
                     RoleClaimType = JwtTokenService.RoleClaim
                 };
+
+                // Olaylar (events): görevlinin işinin belirli anlarına kendi kodumuzu ekleme noktaları.
+                // OnTokenValidated: mühür + süre kontrolü GEÇTİKTEN sonra → güvenlik damgası ve "aktif mi?" kontrolü.
+                options.Events = new JwtBearerEvents
+                {
+                    OnTokenValidated = SecurityStampValidator.ValidateAsync
+                };
             });
 
         // Authorization (yetkilendirme) = "Buraya girebilir misin?"

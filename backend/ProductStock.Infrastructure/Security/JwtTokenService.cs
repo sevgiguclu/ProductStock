@@ -17,6 +17,7 @@ public class JwtTokenService : ITokenService
     public const string UsernameClaim = JwtRegisteredClaimNames.UniqueName; // "unique_name"
     public const string FullNameClaim = "fullName";
     public const string RoleClaim = "role";
+    public const string SecurityStampClaim = "sstamp";   // güvenlik damgasının bileklikteki kopyası
 
     private readonly JwtSettings _settings;
 
@@ -45,7 +46,10 @@ public class JwtTokenService : ITokenService
                 new Claim(UserIdClaim, user.Id),
                 new Claim(UsernameClaim, user.Username),
                 new Claim(FullNameClaim, user.FullName),
-                new Claim(RoleClaim, user.Role.ToString())
+                new Claim(RoleClaim, user.Role.ToString()),
+                // Damga gizli bilgi değil (şifre değil); sadece "bu bileklik hangi damga döneminde verildi" bilgisi.
+                // Mühür sayesinde kimse değiştiremez.
+                new Claim(SecurityStampClaim, user.SecurityStamp)
             ]),
 
             SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256)

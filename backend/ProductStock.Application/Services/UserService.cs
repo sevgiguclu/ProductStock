@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using ProductStock.Application.DTOs.Auth;
 using ProductStock.Application.DTOs.Users;
 using ProductStock.Application.Exceptions;
 using ProductStock.Application.Interfaces;
@@ -23,12 +24,14 @@ public class UserService : IUserService
     private readonly IUserRepository _users;
     private readonly IPasswordHasher _passwordHasher;
     private readonly ICurrentUserService _currentUser;
+    private readonly ITokenService _tokenService;
 
-    public UserService(IUserRepository users, IPasswordHasher passwordHasher, ICurrentUserService currentUser)
+    public UserService(IUserRepository users, IPasswordHasher passwordHasher, ICurrentUserService currentUser, ITokenService tokenService)
     {
         _users = users;
         _passwordHasher = passwordHasher;
         _currentUser = currentUser;
+        _tokenService = tokenService;
     }
 
     public async Task<List<UserResponse>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -75,6 +78,7 @@ public class UserService : IUserService
             PasswordHash = _passwordHasher.Hash(password),   // şifrenin kendisi değil, kıyması saklanır
             Role = request.Role,
             IsActive = true,
+            SecurityStamp = User.NewSecurityStamp(),
             CreatedAt = DateTime.UtcNow
         };
 
@@ -85,7 +89,7 @@ public class UserService : IUserService
         return UserResponse.FromEntity(user);
     }
 
-    public async Task ChangeOwnPasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default)
+    public async Task<LoginResponse> ChangeOwnPasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default)
     {
         // Kimin şifresi? Formdan DEĞİL, bileklikten (giriş yapan kişi). Böylece kimse başkasının şifresini değiştiremez.
         var username = _currentUser.Username;
@@ -109,7 +113,23 @@ public class UserService : IUserService
         if (newPassword == currentPassword)
             throw new BadRequestException("Yeni şifre mevcut şifreyle aynı olamaz.");
 
-        await _users.UpdatePasswordHashAsync(user.Id, _passwordHasher.Hash(newPassword), cancellationToken);
+        // Şifreyle birlikte damga da yenilenir → bu kullanıcının BÜTÜN eski bileklikleri geçersiz olur
+        // (başka bilgisayarda açık kalmış oturumlar da kapanır; şu an kullandığı bileklik de dahil).
+        user.PasswordHash = _passwordHasher.Hash(newPassword);
+        user.SecurityStamp = User.NewSecurityStamp();
+        await _users.UpdatePasswordHashAsync(user.Id, user.PasswordHash, user.SecurityStamp, cancellationToken);
+
+        // Şifresini değiştiren kişi sistemden atılmasın diye ona YENİ damgalı yeni bir bileklik veriyoruz
+        // (bankaların "şifren değişti, diğer cihazlardan çıkış yapıldı" davranışı).
+        var (token, expiresAt) = _tokenService.CreateToken(user);
+        return new LoginResponse
+        {
+            Token = token,
+            ExpiresAt = expiresAt,
+            Username = user.Username,
+            FullName = user.FullName,
+            Role = user.Role
+        };
     }
 
     public async Task<UserResponse> SetStatusAsync(string id, SetUserStatusRequest request, CancellationToken cancellationToken = default)
@@ -127,7 +147,9 @@ public class UserService : IUserService
         if (!isActive && user.Username == _currentUser.Username)
             throw new BadRequestException("Kendi hesabınızı pasif yapamazsınız.");
 
-        await _users.SetActiveAsync(id, isActive, cancellationToken);
+        // Durumla birlikte damga da yenilenir. Pasif yapınca: elindeki BÜTÜN bileklikler anında geçersiz.
+        // (Aktif yapınca yenilemek şart değil ama zararı da yok: kişi zaten yeniden giriş yapacak.)
+        await _users.SetActiveAsync(id, isActive, User.NewSecurityStamp(), cancellationToken);
 
         user.IsActive = isActive;
         return UserResponse.FromEntity(user);

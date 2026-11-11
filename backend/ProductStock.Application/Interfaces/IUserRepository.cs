@@ -19,4 +19,10 @@ public interface IUserRepository
 
     // Yeni kullanıcı kaydeder. Aynı kullanıcı adı varsa ConflictException fırlatır.
     Task CreateAsync(User user, CancellationToken cancellationToken = default);
+
+    // Sadece IsActive alanını değiştirir. Kullanıcı bulunamazsa false.
+    Task<bool> SetActiveAsync(string id, bool isActive, CancellationToken cancellationToken = default);
+
+    // Sadece PasswordHash alanını değiştirir. Kullanıcı bulunamazsa false.
+    Task<bool> UpdatePasswordHashAsync(string id, string passwordHash, CancellationToken cancellationToken = default);
 }

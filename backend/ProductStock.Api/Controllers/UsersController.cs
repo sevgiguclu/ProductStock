@@ -42,4 +42,13 @@ public class UsersController : ControllerBase
         var created = await _userService.CreateAsync(request, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
     }
+
+    // PUT api/users/{id}/status   Gövde: { "isActive": false }
+    // Silmek yerine pasif yapıyoruz: geçmiş stok fişlerindeki "işlemi yapan" bilgisi anlamlı kalsın.
+    // PUT: "durumu şuna AYARLA". Aynı isteği iki kez göndermek sonucu değiştirmez (idempotent).
+    [HttpPut("{id}/status")]
+    public async Task<ActionResult<UserResponse>> SetStatus(string id, SetUserStatusRequest request, CancellationToken cancellationToken)
+    {
+        return Ok(await _userService.SetStatusAsync(id, request, cancellationToken));
+    }
 }

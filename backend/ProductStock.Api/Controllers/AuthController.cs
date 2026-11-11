@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using ProductStock.Application.DTOs.Auth;
+using ProductStock.Application.DTOs.Users;
 using ProductStock.Application.Interfaces;
 
 namespace ProductStock.Api.Controllers;
@@ -11,10 +12,12 @@ namespace ProductStock.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
+    private readonly IUserService _userService;
 
-    public AuthController(IAuthService authService)
+    public AuthController(IAuthService authService, IUserService userService)
     {
         _authService = authService;
+        _userService = userService;
     }
 
     // POST api/auth/login   Gövde: { "username": "admin", "password": "..." }
@@ -27,5 +30,15 @@ public class AuthController : ControllerBase
     {
         var response = await _authService.LoginAsync(request, cancellationToken);
         return Ok(response);
+    }
+
+    // POST api/auth/change-password   Gövde: { "currentPassword": "...", "newPassword": "..." }
+    // [AllowAnonymous] YOK → "varsayılan kilitli" kural geçerli: giriş yapmış herkes (her rol) kendi şifresini değiştirebilir.
+    // Başarılı → 204 No Content ("oldu, gösterecek bir şey yok").
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request, CancellationToken cancellationToken)
+    {
+        await _userService.ChangeOwnPasswordAsync(request, cancellationToken);
+        return NoContent();
     }
 }

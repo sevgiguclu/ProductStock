@@ -22,11 +22,13 @@ public class UserService : IUserService
 
     private readonly IUserRepository _users;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly ICurrentUserService _currentUser;
 
-    public UserService(IUserRepository users, IPasswordHasher passwordHasher)
+    public UserService(IUserRepository users, IPasswordHasher passwordHasher, ICurrentUserService currentUser)
     {
         _users = users;
         _passwordHasher = passwordHasher;
+        _currentUser = currentUser;
     }
 
     public async Task<List<UserResponse>> GetAllAsync(CancellationToken cancellationToken = default)
@@ -80,6 +82,54 @@ public class UserService : IUserService
         // Önce "var mı?" diye sormuyoruz: benzersiz index zaten koruyor ve yarış durumuna (race condition) karşı güvenli.
         await _users.CreateAsync(user, cancellationToken);
 
+        return UserResponse.FromEntity(user);
+    }
+
+    public async Task ChangeOwnPasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        // Kimin şifresi? Formdan DEĞİL, bileklikten (giriş yapan kişi). Böylece kimse başkasının şifresini değiştiremez.
+        var username = _currentUser.Username;
+        if (string.IsNullOrWhiteSpace(username))
+            throw new UnauthorizedException("Kimlik doğrulanamadı.");
+
+        var user = await _users.GetByUsernameAsync(username, cancellationToken)
+            ?? throw new UnauthorizedException("Kimlik doğrulanamadı.");
+
+        var currentPassword = request.CurrentPassword ?? string.Empty;
+        var newPassword = request.NewPassword ?? string.Empty;
+
+        // Mevcut şifre yanlışsa 401 DEĞİL 400: oturum geçerli, sadece form yanlış doldurulmuş.
+        // 401 verseydik ön yüz "oturum bitti" sanıp kullanıcıyı giriş ekranına atardı.
+        if (!_passwordHasher.Verify(user.PasswordHash, currentPassword))
+            throw new BadRequestException("Mevcut şifre hatalı.");
+
+        if (newPassword.Length < MinPasswordLength || newPassword.Length > MaxPasswordLength)
+            throw new BadRequestException($"Yeni şifre en az {MinPasswordLength}, en fazla {MaxPasswordLength} karakter olmalı.");
+
+        if (newPassword == currentPassword)
+            throw new BadRequestException("Yeni şifre mevcut şifreyle aynı olamaz.");
+
+        await _users.UpdatePasswordHashAsync(user.Id, _passwordHasher.Hash(newPassword), cancellationToken);
+    }
+
+    public async Task<UserResponse> SetStatusAsync(string id, SetUserStatusRequest request, CancellationToken cancellationToken = default)
+    {
+        // Alan hiç gönderilmediyse tahmin yürütme, reddet (bkz. SetUserStatusRequest'teki not).
+        if (request.IsActive is not bool isActive)
+            throw new BadRequestException("isActive alanı zorunlu (true veya false).");
+
+        var user = await _users.GetByIdAsync(id, cancellationToken)
+            ?? throw new NotFoundException($"'{id}' Id'li kullanıcı bulunamadı.");
+
+        // Kural: kimse kendi hesabını pasif yapamaz.
+        // Tek Admin kendini kapatırsa sistemde yönetici kalmaz ve kimse onu geri açamaz.
+        // İşlemi yapan hep aktif kaldığı için "en az bir aktif Admin" her zaman garanti.
+        if (!isActive && user.Username == _currentUser.Username)
+            throw new BadRequestException("Kendi hesabınızı pasif yapamazsınız.");
+
+        await _users.SetActiveAsync(id, isActive, cancellationToken);
+
+        user.IsActive = isActive;
         return UserResponse.FromEntity(user);
     }
 }

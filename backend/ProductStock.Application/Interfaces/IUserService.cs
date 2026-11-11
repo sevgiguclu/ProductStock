@@ -12,4 +12,10 @@ public interface IUserService
 
     // Kurallara uymazsa BadRequestException (400), kullanıcı adı alınmışsa ConflictException (409).
     Task<UserResponse> CreateAsync(CreateUserRequest request, CancellationToken cancellationToken = default);
+
+    // Aktif/pasif yapar. Kendini pasif yapmaya çalışırsa 400, kullanıcı yoksa 404.
+    Task<UserResponse> SetStatusAsync(string id, SetUserStatusRequest request, CancellationToken cancellationToken = default);
+
+    // Giriş yapmış kullanıcının KENDİ şifresini değiştirir. Mevcut şifre yanlışsa 400.
+    Task ChangeOwnPasswordAsync(ChangePasswordRequest request, CancellationToken cancellationToken = default);
 }

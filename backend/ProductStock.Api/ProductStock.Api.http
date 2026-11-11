@@ -147,6 +147,39 @@ Authorization: Bearer {{login.response.body.$.token}}
   "role": "WarehouseStaff"
 }
 
+### Kullanıcıyı PASİF yap (Admin) → o kullanıcı artık giriş yapamaz
+# {userId} yerine "Kullanıcıları listele" cevabındaki bir "id" değerini yapıştır (kendi Id'n olursa 400 döner).
+@userId = buraya-kullanici-id
+PUT {{ProductStock.Api_HostAddress}}/api/users/{{userId}}/status
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "isActive": false
+}
+
+### Kullanıcıyı tekrar AKTİF yap (Admin)
+PUT {{ProductStock.Api_HostAddress}}/api/users/{{userId}}/status
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "isActive": true
+}
+
+### Şifre değiştir – YANLIŞ mevcut şifre → 400 "Mevcut şifre hatalı." (güvenli örnek, hiçbir şey değişmez)
+# Giriş yapmış herkes KENDİ şifresini değiştirebilir (başkasınınkini değil: kimin şifresi olduğu bileklikten okunur).
+# UYARI: Gerçek değişiklik yaparsan yeni şifreyi bu dosyaya YAZMA (dosya GitHub'a gidiyor) ve
+# User Secrets'taki değeri de güncellemen gerekir, yoksa "Giriş yap" isteği çalışmaz.
+POST {{ProductStock.Api_HostAddress}}/api/auth/change-password
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "currentPassword": "bu-yanlis-bir-sifre",
+  "newPassword": "YeniSifre123"
+}
+
 ### Depo Görevlisi girişi (aşağıdaki "@name" satırı bu isteğe "loginDepo" adını verir)
 # =====================================================================
 # DEPO GÖREVLİSİ olarak dene (rol yetkisi testi)

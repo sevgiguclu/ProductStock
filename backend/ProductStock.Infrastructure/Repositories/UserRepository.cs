@@ -45,6 +45,26 @@ public class UserRepository : IUserRepository
         return count > 0;
     }
 
+    public Task<bool> SetActiveAsync(string id, bool isActive, CancellationToken cancellationToken = default)
+        => SetFieldAsync(id, Builders<User>.Update.Set(u => u.IsActive, isActive), cancellationToken);
+
+    public Task<bool> UpdatePasswordHashAsync(string id, string passwordHash, CancellationToken cancellationToken = default)
+        => SetFieldAsync(id, Builders<User>.Update.Set(u => u.PasswordHash, passwordHash), cancellationToken);
+
+    // Ortak iş: belgenin tamamını değil, SADECE verilen alanı değiştir ($set).
+    // Böylece aynı anda başka bir alan değişse bile onu ezmeyiz (ürün güncellemedeki mantık).
+    private async Task<bool> SetFieldAsync(string id, UpdateDefinition<User> update, CancellationToken cancellationToken)
+    {
+        if (!ObjectId.TryParse(id, out _))
+            return false;
+
+        var result = await _users.UpdateOneAsync(u => u.Id == id, update, cancellationToken: cancellationToken);
+
+        // MatchedCount: filtreye uyan belge sayısı. 0 ise kullanıcı yok.
+        // (ModifiedCount'a bakmıyoruz: zaten pasif olanı tekrar pasif yapmak "değişmedi" der ama hata değildir.)
+        return result.MatchedCount > 0;
+    }
+
     public async Task CreateAsync(User user, CancellationToken cancellationToken = default)
     {
         try

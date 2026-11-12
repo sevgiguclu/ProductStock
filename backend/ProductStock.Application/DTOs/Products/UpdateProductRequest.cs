@@ -2,7 +2,7 @@ namespace ProductStock.Application.DTOs.Products;
 
 // Ürün düzenleme "formu". Hangi ürünün düzenleneceği (Id) adresten gelir: PUT api/products/{id}
 // StockQuantity yok: stok sadece stok giriş/çıkış işlemleriyle değişir.
-public class UpdateProductRequest
+public class UpdateProductRequest : IProductFields
 {
     public string Name { get; set; } = string.Empty;
 

@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
 using ProductStock.Application.Interfaces;
 using ProductStock.Application.Services;
@@ -14,6 +15,11 @@ public static class DependencyInjection
         services.AddScoped<IStockService, StockService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<IUserService, UserService>();
+
+        // Bu projedeki (Application) BÜTÜN kural sınıflarını (AbstractValidator<T>'den türeyenleri) bul ve kaydet.
+        // Yeni bir kural sınıfı yazınca buraya tek tek eklemek gerekmez; otomatik bulunur.
+        // typeof(DependencyInjection).Assembly: "bu sınıfın bulunduğu proje (derlenmiş dosya)".
+        services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
 
         return services;
     }

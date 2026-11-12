@@ -13,8 +13,22 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Controller sınıflarını (HealthController, ProductsController...) etkinleştirir.
 // JsonStringEnumConverter: JSON'da enum'lar sayı (0, 1) yerine metin ("In", "Out") olarak yazılsın/okunsun.
-builder.Services.AddControllers()
-    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()));
+builder.Services.AddControllers(options =>
+    {
+        // Her controller metodundan önce FluentValidation kurallarını çalıştıran kontrol noktası.
+        options.Filters.Add<ValidationFilter>();
+
+        // ASP.NET normalde "?" işaretsiz string alanları (ör. Name) kendiliğinden "zorunlu" sayar ve
+        // İngilizce mesaj verir ("The Name field is required."). Bunu kapatıyoruz:
+        // zorunluluk kuralları TEK yerde, bizim FluentValidation kurallarımızda (Türkçe mesajlarla) dursun.
+        options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+    })
+    .AddJsonOptions(options => options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter()))
+    // ASP.NET'in KENDİ yakaladığı form hataları (bozuk JSON, tanımsız enum değeri vb.) da
+    // bizim kurallarımızla aynı biçimde, Türkçe ve iç ayrıntı sızdırmadan dönsün.
+    .ConfigureApiBehaviorOptions(options =>
+        options.InvalidModelStateResponseFactory = context =>
+            ValidationFilter.CreateFromModelState(context.HttpContext, context.ModelState));
 
 // Application katmanı (ProductService gibi iş kuralları)
 builder.Services.AddApplication();

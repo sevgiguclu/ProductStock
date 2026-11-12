@@ -6,7 +6,8 @@ namespace ProductStock.Application.DTOs.Products;
 //  - StockQuantity: ürün 0 stokla oluşur. Stok sadece "stok girişi" işlemiyle artar,
 //    böylece her stok değişikliği stok hareketi olarak kayıt altında olur.
 //  - CreatedAt/UpdatedAt: sunucu kendisi yazar, kullanıcıya bırakılmaz.
-public class CreateProductRequest
+// ": IProductFields" → bu form "ürün alanları" sözleşmesini imzalar (ortak doğrulama kuralları için).
+public class CreateProductRequest : IProductFields
 {
     public string Name { get; set; } = string.Empty;
 

@@ -1,5 +1,6 @@
 using MongoDB.Bson;
 using MongoDB.Driver;
+using ProductStock.Application.DTOs.Auth;
 using ProductStock.Application.Exceptions;
 using ProductStock.Application.Interfaces;
 using ProductStock.Domain.Entities;
@@ -29,6 +30,22 @@ public class UserRepository : IUserRepository
             return null;
 
         return await _users.Find(u => u.Id == id).FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task<UserAuthState?> GetAuthStateAsync(string id, CancellationToken cancellationToken = default)
+    {
+        if (!ObjectId.TryParse(id, out _))
+            return null;
+
+        // Project: "belgenin tamamını değil, sadece bu alanları ver" (projection).
+        // Sürücü bunu veritabanına { isActive: 1, securityStamp: 1 } gibi bir alan listesi olarak gönderir;
+        // seçim veritabanında yapılır, diğer alanlar (şifre kıyması vb.) hiç yola çıkmaz.
+        // Doğrulandı (2026-11-13): veritabanına giden sorgu →
+        // find({ "_id": ... }, { "isActive": 1, "securityStamp": 1, "_id": 0 })
+        return await _users
+            .Find(u => u.Id == id)
+            .Project(u => new UserAuthState(u.IsActive, u.SecurityStamp))
+            .FirstOrDefaultAsync(cancellationToken);
     }
 
     public async Task<List<User>> GetAllAsync(CancellationToken cancellationToken = default)

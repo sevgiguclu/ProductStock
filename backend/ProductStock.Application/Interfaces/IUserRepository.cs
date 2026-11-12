@@ -1,3 +1,4 @@
+using ProductStock.Application.DTOs.Auth;
 using ProductStock.Domain.Entities;
 
 namespace ProductStock.Application.Interfaces;
@@ -10,6 +11,10 @@ public interface IUserRepository
 
     // Id'ye göre bulur; yoksa (veya Id geçersizse) null.
     Task<User?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
+
+    // Kapı görevlisi için: sadece "aktif mi + damga" (2 alan). Kullanıcı yoksa (veya Id geçersizse) null.
+    // Her korunan istekte çağrılır; bu yüzden kaydın tamamını (şifre kıyması dahil) getirmez.
+    Task<UserAuthState?> GetAuthStateAsync(string id, CancellationToken cancellationToken = default);
 
     // Tüm kullanıcılar, kullanıcı adına göre A-Z. (Kullanıcı sayısı az olacağı için sayfalama yok.)
     Task<List<User>> GetAllAsync(CancellationToken cancellationToken = default);

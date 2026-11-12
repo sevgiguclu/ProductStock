@@ -28,11 +28,13 @@ public static class SecurityStampValidator
 
         // RequestServices: bu isteğe ait DI kapsamı (scoped repository'yi buradan alabiliriz).
         var users = context.HttpContext.RequestServices.GetRequiredService<IUserRepository>();
-        var user = await users.GetByIdAsync(userId, context.HttpContext.RequestAborted);
+
+        // Kaydın tamamı değil, sadece 2 alan (aktif mi + damga). Şifre kıyması gereksiz yere taşınmaz ("en az ayrıcalık").
+        var state = await users.GetAuthStateAsync(userId, context.HttpContext.RequestAborted);
 
         // Kullanıcı silinmiş / pasif / damgası değişmiş (şifre değişti veya pasif yapıldı) → bileklik geçersiz.
         // Fail: görevli isteği 401 ile reddeder (controller'a hiç ulaşmaz).
-        if (user is null || !user.IsActive || !string.Equals(user.SecurityStamp, tokenStamp, StringComparison.Ordinal))
+        if (state is null || !state.IsActive || !string.Equals(state.SecurityStamp, tokenStamp, StringComparison.Ordinal))
         {
             context.Fail("Bileklik artık geçerli değil.");
         }

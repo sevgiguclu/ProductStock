@@ -21,6 +21,11 @@ public static class DependencyInjection
         // typeof(DependencyInjection).Assembly: "bu sınıfın bulunduğu proje (derlenmiş dosya)".
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
 
+        // Bir alanda İLK hata bulununca o alanın kalan kurallarına bakma (CascadeMode.Stop).
+        // Yoksa boş şifre için "boş olamaz" + "en az 8 olmalı" + "mevcut şifreyle aynı olamaz" üçü birden gelirdi.
+        // (Farklı alanların hataları yine hep birlikte döner: kullanıcı tüm eksikleri tek seferde görür.)
+        ValidatorOptions.Global.DefaultRuleLevelCascadeMode = CascadeMode.Stop;
+
         return services;
     }
 }

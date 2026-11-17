@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using ProductStock.Application.DTOs.Auth;
 using ProductStock.Application.DTOs.Users;
 using ProductStock.Application.Exceptions;
@@ -8,19 +7,12 @@ using ProductStock.Domain.Enums;
 
 namespace ProductStock.Application.Services;
 
-// Kullanıcı yönetimi "müdürü": kuralları kontrol eder, şifreyi kıymadan geçirir, kaydeder.
+// Kullanıcı yönetimi "müdürü": iş kurallarını uygular, şifreyi kıymadan geçirir, kaydeder.
+// Form kuralları (kullanıcı adı kalıbı, şifre uzunluğu, rol geçerli mi...) burada DEĞİL:
+// Validators/Users/UserValidators.cs'te. ValidationFilter, form buraya gelmeden ÖNCE onları çalıştırır.
+// Burada sadece veritabanına/duruma bakmayı gerektiren kurallar var (mevcut şifre doğru mu, kendini pasif yapma...).
 public class UserService : IUserService
 {
-    public const int MinPasswordLength = 8;
-    public const int MaxPasswordLength = 128;
-
-    // Regex (düzenli ifade) = metin için kalıp.
-    // ^ ... $          → metnin baştan sona tamamı bu kalıba uymalı
-    // [a-z0-9._-]      → izin verilen karakterler: küçük harf, rakam, nokta, alt çizgi, tire
-    // {3,32}           → en az 3, en fazla 32 karakter
-    // Türkçe harf ve boşluk yok: giriş adı her klavyede sorunsuz yazılabilsin.
-    private static readonly Regex UsernamePattern = new("^[a-z0-9._-]{3,32}$", RegexOptions.Compiled);
-
     private readonly IUserRepository _users;
     private readonly IPasswordHasher _passwordHasher;
     private readonly ICurrentUserService _currentUser;
@@ -50,32 +42,13 @@ public class UserService : IUserService
 
     public async Task<UserResponse> CreateAsync(CreateUserRequest request, CancellationToken cancellationToken = default)
     {
-        // Girişte "Ayse.Yilmaz " yazılsa da "ayse.yilmaz" olarak saklansın (girişte de aynı çevrim yapılıyor).
-        var username = (request.Username ?? string.Empty).Trim().ToLowerInvariant();
-        var fullName = (request.FullName ?? string.Empty).Trim();
-        var password = request.Password ?? string.Empty;
-
-        if (!UsernamePattern.IsMatch(username))
-            throw new BadRequestException(
-                "Kullanıcı adı 3-32 karakter olmalı ve sadece küçük harf (a-z), rakam, nokta, alt çizgi, tire içermeli.");
-
-        if (fullName.Length is 0 or > 100)
-            throw new BadRequestException("Ad soyad boş olamaz ve en fazla 100 karakter olabilir.");
-
-        // Şifrenin başındaki/sonundaki boşluklara dokunmuyoruz: boşluk da şifrenin parçası olabilir.
-        if (password.Length < MinPasswordLength || password.Length > MaxPasswordLength)
-            throw new BadRequestException($"Şifre en az {MinPasswordLength}, en fazla {MaxPasswordLength} karakter olmalı.");
-
-        // Enum.IsDefined: gelen değer gerçekten tanımlı rollerden biri mi?
-        // JSON'da "role": 5 gibi bir sayı gelirse metin çevirici bunu kabul eder; burada yakalıyoruz.
-        if (!Enum.IsDefined(request.Role))
-            throw new BadRequestException("Geçersiz rol. Geçerli değerler: Admin, WarehouseStaff.");
-
+        // Form kuralları CreateUserRequestValidator'da kontrol edildi. Burada sadece tek tipe getiriyoruz:
+        // "Ayse.Yilmaz " → "ayse.yilmaz" (girişte de aynı çevrim yapılıyor).
         var user = new User
         {
-            Username = username,
-            FullName = fullName,
-            PasswordHash = _passwordHasher.Hash(password),   // şifrenin kendisi değil, kıyması saklanır
+            Username = request.Username.Trim().ToLowerInvariant(),
+            FullName = request.FullName.Trim(),
+            PasswordHash = _passwordHasher.Hash(request.Password),   // şifrenin kendisi değil, kıyması saklanır
             Role = request.Role,
             IsActive = true,
             SecurityStamp = User.NewSecurityStamp(),
@@ -99,23 +72,16 @@ public class UserService : IUserService
         var user = await _users.GetByUsernameAsync(username, cancellationToken)
             ?? throw new UnauthorizedException("Kimlik doğrulanamadı.");
 
-        var currentPassword = request.CurrentPassword ?? string.Empty;
-        var newPassword = request.NewPassword ?? string.Empty;
-
-        // Mevcut şifre yanlışsa 401 DEĞİL 400: oturum geçerli, sadece form yanlış doldurulmuş.
+        // Form kuralları (boş değil, yeni şifre 8-128, eskisiyle aynı değil) ChangePasswordRequestValidator'da.
+        // Burada kalan İŞ KURALI: mevcut şifre gerçekten doğru mu? (veritabanındaki kıymaya bakmak gerekiyor)
+        // Yanlışsa 401 DEĞİL 400: oturum geçerli, sadece form yanlış doldurulmuş.
         // 401 verseydik ön yüz "oturum bitti" sanıp kullanıcıyı giriş ekranına atardı.
-        if (!_passwordHasher.Verify(user.PasswordHash, currentPassword))
+        if (!_passwordHasher.Verify(user.PasswordHash, request.CurrentPassword))
             throw new BadRequestException("Mevcut şifre hatalı.");
-
-        if (newPassword.Length < MinPasswordLength || newPassword.Length > MaxPasswordLength)
-            throw new BadRequestException($"Yeni şifre en az {MinPasswordLength}, en fazla {MaxPasswordLength} karakter olmalı.");
-
-        if (newPassword == currentPassword)
-            throw new BadRequestException("Yeni şifre mevcut şifreyle aynı olamaz.");
 
         // Şifreyle birlikte damga da yenilenir → bu kullanıcının BÜTÜN eski bileklikleri geçersiz olur
         // (başka bilgisayarda açık kalmış oturumlar da kapanır; şu an kullandığı bileklik de dahil).
-        user.PasswordHash = _passwordHasher.Hash(newPassword);
+        user.PasswordHash = _passwordHasher.Hash(request.NewPassword);
         user.SecurityStamp = User.NewSecurityStamp();
         await _users.UpdatePasswordHashAsync(user.Id, user.PasswordHash, user.SecurityStamp, cancellationToken);
 
@@ -134,9 +100,10 @@ public class UserService : IUserService
 
     public async Task<UserResponse> SetStatusAsync(string id, SetUserStatusRequest request, CancellationToken cancellationToken = default)
     {
-        // Alan hiç gönderilmediyse tahmin yürütme, reddet (bkz. SetUserStatusRequest'teki not).
-        if (request.IsActive is not bool isActive)
-            throw new BadRequestException("isActive alanı zorunlu (true veya false).");
+        // "isActive boş olamaz" kuralı SetUserStatusRequestValidator'da.
+        // .Value: değer yoksa sessizce "false" (= pasif yap!) saymak yerine AÇIKÇA hata verir.
+        // Normalde hiç olmaz (filtre engeller); filtre bir gün atlanırsa kullanıcı yanlışlıkla pasif yapılmasın diye.
+        var isActive = request.IsActive!.Value;
 
         var user = await _users.GetByIdAsync(id, cancellationToken)
             ?? throw new NotFoundException($"'{id}' Id'li kullanıcı bulunamadı.");

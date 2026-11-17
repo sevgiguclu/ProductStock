@@ -1,5 +1,6 @@
 using FluentValidation;
 using ProductStock.Application.DTOs.Auth;
+using ProductStock.Application.Validators.Users;
 
 namespace ProductStock.Application.Validators.Auth;
 
@@ -17,6 +18,7 @@ public class LoginRequestValidator : AbstractValidator<LoginRequest>
         RuleFor(x => x.Password)
             .NotEmpty().WithMessage("Şifre boş olamaz.")
             // Üst sınır neden? Şifre kıyma (hash) işlemi bilerek yavaştır; çok uzun "şifrelerle" sunucuyu yormaya çalışana karşı.
-            .MaximumLength(128).WithMessage("Şifre en fazla 128 karakter olabilir.");
+            // Alt sınır YOK: girişte "en az 8" demek, saldırgana şifre kuralını öğretmekten başka işe yaramaz.
+            .MaximumLength(PasswordRules.MaxLength).WithMessage($"Şifre en fazla {PasswordRules.MaxLength} karakter olabilir.");
     }
 }

@@ -7,13 +7,11 @@ using ProductStock.Domain.Enums;
 
 namespace ProductStock.Application.Services;
 
-// Stok işlerinin "müdürü": fişin kurallara uygun olup olmadığına bakar, uygulamayı elemana bırakır.
+// Stok işlerinin "müdürü": fişi hazırlar, uygulamayı elemana bırakır, sonucu yorumlar.
+// Form kuralları (miktar 1-1.000.000, neden boş olamaz) Validators/Stock/StockChangeRequestValidator.cs'te.
+// Burada kalan iş kuralları: ürün var mı, stok yeterli mi (veritabanına bakmayı gerektirenler).
 public class StockService : IStockService
 {
-    // Tek fişte izin verilen en büyük miktar. int'in bir tavanı var (~2,1 milyar);
-    // dev bir sayı stoğu taşırıp anlamsız bir değere çevirmesin.
-    private const int MaxQuantity = 1_000_000;
-
     private const int MaxPageSize = 100;
 
     private readonly IStockMovementRepository _movements;
@@ -53,19 +51,9 @@ public class StockService : IStockService
         };
     }
 
-    // Giriş ve çıkışın ortak işi: kuralları kontrol et, fişi hazırla, elemana uygulat, sonucu yorumla.
+    // Giriş ve çıkışın ortak işi: fişi hazırla, elemana uygulat, sonucu yorumla.
     private async Task<StockMovementResponse> ApplyAsync(string productId, StockMovementType type, StockChangeRequest request, CancellationToken cancellationToken)
     {
-        // Kural: miktar 1 ile 1.000.000 arasında olmalı.
-        if (request.Quantity <= 0)
-            throw new BadRequestException("Miktar 0'dan büyük olmalı.");
-        if (request.Quantity > MaxQuantity)
-            throw new BadRequestException($"Tek işlemde en fazla {MaxQuantity:N0} adet girilebilir.");
-
-        // Kural: her fişin bir nedeni olmalı.
-        if (string.IsNullOrWhiteSpace(request.Reason))
-            throw new BadRequestException("Neden (reason) boş olamaz.");
-
         // Fişte "işlemi yapan" = giriş yapmış kullanıcı. Stok adresleri bileklik istediği için normalde hep dolu gelir.
         // Boş gelirse bir hata var demektir: "sistem" yazıp sessizce devam etmek yerine işlemi durduruyoruz
         // (fail fast). Yoksa fişlerde kimin ne yaptığı kaybolur ve bunu ancak aylar sonra fark ederdik.

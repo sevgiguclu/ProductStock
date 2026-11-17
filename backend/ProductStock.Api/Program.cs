@@ -47,7 +47,9 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 // Merkezi hata yakalayıcı + standart hata gövdesi (ProblemDetails)
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Services.AddProblemDetails();
+// CustomizeProblemDetails: ASP.NET'in kendi ürettiği standart hata cevaplarını (boş 401/403/404/405) Türkçeleştir.
+builder.Services.AddProblemDetails(options =>
+    options.CustomizeProblemDetails = StatusCodeProblemDetails.Customize);
 
 // API'nin tarifini (OpenAPI belgesi) üretir. Swagger düzeni 7. günde yapılacak.
 builder.Services.AddOpenApi();
@@ -61,6 +63,11 @@ var app = builder.Build();
 
 // En başta: arkadaki herhangi bir istasyonda hata olursa GlobalExceptionHandler yakalar.
 app.UseExceptionHandler();
+
+// Gövdesi BOŞ giden hata cevaplarına (kapı görevlisinin 401/403'ü, olmayan adres 404, yanlış metot 405)
+// standart bir açıklama (ProblemDetails) ekler. Gövdesi zaten dolu cevaplara dokunmaz.
+// Başa yakın olmalı: arkadaki istasyonların cevaplarını dönüşte görebilsin.
+app.UseStatusCodePages();
 
 if (app.Environment.IsDevelopment())
 {
